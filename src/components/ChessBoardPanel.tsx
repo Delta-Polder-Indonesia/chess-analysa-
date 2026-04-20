@@ -12,6 +12,7 @@ interface ChessBoardPanelProps {
   maxSuggestionArrows?: number;
   onMoveSelect?: (uci: string) => void;
   orientation: 'white' | 'black';
+  boardResetKey?: number;
 }
 
 export default function ChessBoardPanel({
@@ -23,6 +24,7 @@ export default function ChessBoardPanel({
   maxSuggestionArrows = 3,
   onMoveSelect,
   orientation,
+  boardResetKey = 0,
 }: ChessBoardPanelProps) {
   const [moveFrom, setMoveFrom] = useState<string | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({});
@@ -33,16 +35,14 @@ export default function ChessBoardPanel({
   >([]);
   const [engineArrowHighlights, setEngineArrowHighlights] = useState<Record<string, true>>({});
 
-  // Clear ALL arrow/mark state whenever the board position changes.
-  // This prevents:
-  // 1. Stale engine arrow highlights (yellow) carrying over to the next position.
-  // 2. Drag-to-move events firing onArrowsChange with the move path, which overlaps
-  //    engine arrows and turns them yellow — those manual arrows must be purged on move.
+  // Clear ALL arrow/mark state whenever the board position changes OR a reset is triggered.
+  // boardResetKey increments on New Game even when FEN stays the same (starting position),
+  // ensuring stale yellow arrows are always purged.
   useEffect(() => {
     setEngineArrowHighlights({});
     setManualArrows([]);
     setMarkedSquares({});
-  }, [fen]);
+  }, [fen, boardResetKey]);
 
   const getGame = useCallback(() => {
     try {

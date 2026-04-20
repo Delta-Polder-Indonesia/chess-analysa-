@@ -46,6 +46,7 @@ export default function App() {
   const [engineError, setEngineError] = useState<string | null>(null);
   const [isEngineLoading, setIsEngineLoading] = useState(false);
   const [engineRefreshTick, setEngineRefreshTick] = useState(0);
+  const [boardResetKey, setBoardResetKey] = useState(0);
   const [cache, setCache] = useState<Record<string, TablebaseResult>>({});
   const [history, setHistory] = useState<HistoryEntry[]>([{ fen: STARTING_FEN }]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -405,6 +406,7 @@ export default function App() {
     setHistoryIndex(0);
     setError(null);
     setResult(cache[cacheKey(variant, NEW_GAME_FEN)] || null);
+    setBoardResetKey(prev => prev + 1);
 
     if (engineSettings.enabled) {
       setEngineRefreshTick(prev => prev + 1);
@@ -614,6 +616,7 @@ export default function App() {
             onFenSubmit={handleFenSubmit}
             onReset={handleReset}
             initialFen={NEW_GAME_FEN}
+            boardResetKey={boardResetKey}
           />
 
           <AnalysisSidePanel
@@ -646,7 +649,7 @@ export default function App() {
             openings={OPENING_BOOK}
             onLoadOpeningLine={handleLoadOpeningLine}
             onNew={handleReset}
-            onCopyFen={() => navigator.clipboard.writeText(fen).catch(() => {})}
+            onCopyFen={() => navigator.clipboard.writeText(fen).catch(() => { })}
             onReview={() => queryTablebase(fen, variant, historyIndex)}
           />
         </div>
