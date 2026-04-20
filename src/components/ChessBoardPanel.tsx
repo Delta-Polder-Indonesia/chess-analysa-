@@ -307,27 +307,29 @@ export default function ChessBoardPanel({
   return (
     <div className="relative chessboard-surface">
       <Chessboard
-        position={fen}
-        onPieceDrop={handlePieceDrop}
-        onSquareClick={handleSquareClick}
-        onSquareRightClick={handleSquareRightClick}
-        onArrowsChange={handleArrowsChange}
-        boardOrientation={orientation}
-        customSquareStyles={mergedSquareStyles}
-        customArrows={combinedArrows}
-        customDropSquareStyle={{
-          boxShadow: 'inset 0 0 1px 6px rgba(255, 255, 255, 0.75)',
+        options={{
+          position: fen,
+          onPieceDrop: handlePieceDrop,
+          onSquareClick: handleSquareClick,
+          onSquareRightClick: handleSquareRightClick,
+          onArrowsChange: handleArrowsChange,
+          boardOrientation: orientation,
+          squareStyles: mergedSquareStyles,
+          arrows: combinedArrows,
+          allowDrawingArrows: true,
+          clearArrowsOnClick: true,
+          boardStyle: {
+            borderRadius: '2px',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.28)',
+          },
+          darkSquareStyle: { backgroundColor: '#769656' },
+          lightSquareStyle: { backgroundColor: '#eeeed2' },
+          animationDurationInMs: isLoading ? 120 : 200,
+          snapToCursor: false,
+          dropSquareStyle: {
+            boxShadow: 'inset 0 0 1px 6px rgba(255, 255, 255, 0.75)'
+          }
         }}
-        snapToCursor={false}
-        allowDrawingArrows={true}
-        clearArrowsOnClick={true}
-        customBoardStyle={{
-          borderRadius: '2px',
-          boxShadow: '0 6px 18px rgba(0,0,0,0.28)',
-        }}
-        customDarkSquareStyle={{ backgroundColor: '#769656' }}
-        customLightSquareStyle={{ backgroundColor: '#eeeed2' }}
-        animationDuration={isLoading ? 120 : 200}
       />
     </div>
   );
