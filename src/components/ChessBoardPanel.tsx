@@ -212,6 +212,7 @@ export default function ChessBoardPanel({
   const handleArrowsChange = useCallback((nextArrows: unknown) => {
     if (!Array.isArray(nextArrows)) {
       setManualArrows([]);
+      setEngineArrowHighlights({}); // ← Tambahkan ini
       return;
     }
 
@@ -248,42 +249,33 @@ export default function ChessBoardPanel({
 
     const parsedKeys = new Set(parsedArrows.map(arrow => `${arrow.startSquare}-${arrow.endSquare}`));
 
-    // If a drawn arrow overlaps an engine suggestion path, mark that engine arrow in yellow.
-    // This avoids path conflicts where manual arrows cannot visually stack on the same route.
-    if (parsedArrows.length > 0) {
-      setEngineArrowHighlights(prev => {
-        const next = { ...prev };
-        let changed = false;
-
-        parsedArrows.forEach(arrow => {
-          const key = `${arrow.startSquare}-${arrow.endSquare}`;
-          if (!engineArrowKeys.has(key)) return;
-          if (next[key]) {
-            delete next[key];
-          } else {
-            next[key] = true;
-          }
-          changed = true;
-        });
-
-        return changed ? next : prev;
+    // ← PERBAIKAN: Reset highlights berdasarkan anak panah yang benar-benar ada
+    setEngineArrowHighlights(() => {
+      const nextHighlights: Record<string, true> = {};
+      // Hanya pertahankan highlight untuk anak panah yang masih ada di parsedArrows
+      parsedArrows.forEach(arrow => {
+        const key = `${arrow.startSquare}-${arrow.endSquare}`;
+        if (engineArrowKeys.has(key)) {
+          nextHighlights[key] = true;
+        }
       });
-    }
+      return nextHighlights;
+    });
 
     setManualArrows(prev => {
       const manualMap = new Map(
         prev.map(arrow => [`${arrow.startSquare.toLowerCase()}-${arrow.endSquare.toLowerCase()}`, arrow]),
       );
 
-      // Keep only manual arrows that still exist in the board output.
+      // Hapus manual arrows yang sudah tidak ada
       for (const key of [...manualMap.keys()]) {
         if (!parsedKeys.has(key)) manualMap.delete(key);
       }
 
-      // Add or refresh manual arrows that are not part of immutable engine suggestions.
+      // Tambah manual arrows baru (yang bukan dari engine)
       for (const arrow of parsedArrows) {
         const key = `${arrow.startSquare}-${arrow.endSquare}`;
-        if (engineArrowKeys.has(key)) continue;
+        if (engineArrowKeys.has(key)) continue; // Skip anak panah engine
         manualMap.set(key, {
           startSquare: arrow.startSquare,
           endSquare: arrow.endSquare,
