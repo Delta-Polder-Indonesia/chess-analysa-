@@ -120,31 +120,34 @@ export function parsePvMovesFromUci(fen: string, uciMoves: string[]): ParsedPvMo
 }
 
 export async function fetchStockfishOnline(fen: string, depth: number): Promise<StockfishAnalysis> {
-  const params = new URLSearchParams({
-    fen,
-    depth: String(Math.max(1, Math.min(15, depth))),
-  });
-  const url = `https://stockfish.online/api/s/v2.php?${params.toString()}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
-  const response = await fetch(url, { signal: controller.signal });
+
+  const response = await fetch('https://chess-api.com/v1', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fen, depth: Math.max(1, Math.min(18, depth)), maxMoves: 4 }),
+    signal: controller.signal
+  });
+
   clearTimeout(timeout);
   if (!response.ok) {
     throw new Error(`Stockfish API HTTP ${response.status}`);
   }
 
-  const data = (await response.json()) as StockfishApiResponse;
-  if (!data.success) {
-    throw new Error(data.error || 'Stockfish API returned an error.');
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(data.error);
   }
 
-  const continuation = typeof data.continuation === 'string' ? extractUciTokens(data.continuation) : [];
+  const mateVal = data.mate !== undefined && data.mate !== null ? Number(data.mate) : null;
+  const cpVal = mateVal === null && data.centipawns !== undefined ? Number(data.centipawns) : null;
 
   return {
-    evaluationCp: data.evaluation === null ? null : Math.round(data.evaluation * 100),
-    mate: data.mate,
-    bestMoveUci: parseBestMove(data.bestmove),
-    continuation,
+    evaluationCp: cpVal,
+    mate: mateVal,
+    bestMoveUci: data.move || null,
+    continuation: data.continuationArr || [],
     lines: [],
   };
 }
