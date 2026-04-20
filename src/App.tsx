@@ -510,12 +510,14 @@ export default function App() {
 
   const arrowMoves = useMemo(() => {
     if (!engineSettings.enabled || !engineSettings.showArrows) return [] as Array<{ uci: string; side?: 'player' | 'opponent' }>;
+    // While engine is fetching for the new position, clear arrows so stale arrows don't persist
+    if (isEngineLoading) return [] as Array<{ uci: string; side?: 'player' | 'opponent' }>;
     if (engineArrowMoves.length > 0) return engineArrowMoves;
     if (engineSuggestionMoves.length > 0) {
       return engineSuggestionMoves.slice(0, Math.max(1, engineSettings.arrowCount)).map(move => ({ uci: move.uci, side: 'player' as const }));
     }
     return [];
-  }, [engineArrowMoves, engineSettings.arrowCount, engineSettings.enabled, engineSettings.showArrows, engineSuggestionMoves]);
+  }, [engineArrowMoves, engineSettings.arrowCount, engineSettings.enabled, engineSettings.showArrows, engineSuggestionMoves, isEngineLoading]);
 
   const topMoves = useMemo(() => {
     if (result?.moves?.length) {

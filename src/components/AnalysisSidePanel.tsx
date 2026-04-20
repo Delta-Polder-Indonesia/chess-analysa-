@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import EngineLinesPanel, { EngineLine } from './EngineLinesPanel';
 import MoveList from './MoveList';
@@ -6,7 +6,6 @@ import OpeningExplorer from './OpeningExplorer';
 import { OpeningFamily, OpeningLine } from '../data/openingBook';
 import { openings as fullOpeningsList } from '../data/openings';
 import { TablebaseResult, Variant, HistoryEntry } from '../types/tablebase';
-import { formatCategory } from '../utils/tablebase';
 import { formatCategory } from '../utils/tablebase';
 
 interface HistoryRow {
@@ -86,12 +85,33 @@ export default function AnalysisSidePanel({
 }: AnalysisSidePanelProps) {
   const currentFen = history[historyIndex]?.fen || '';
   const boardFen = currentFen.split(' ')[0];
-  
-  const currentOpening = useMemo(() => {
+
+  // Track the last known opening name so it persists into mid-game.
+  // It only resets when history is reset to a single entry (new game).
+  const lastOpeningRef = useRef<string | null>(null);
+
+  const liveOpening = useMemo(() => {
     if (!boardFen) return null;
     const opening = fullOpeningsList.find(op => op.fen.split(' ')[0] === boardFen);
     return opening ? opening.name : null;
   }, [boardFen]);
+
+  // When the opening book matches a position, save it
+  useEffect(() => {
+    if (liveOpening) {
+      lastOpeningRef.current = liveOpening;
+    }
+  }, [liveOpening]);
+
+  // Reset the saved opening name when a new game starts (history collapses to 1 entry)
+  useEffect(() => {
+    if (history.length <= 1) {
+      lastOpeningRef.current = null;
+    }
+  }, [history.length]);
+
+  // Use the live match if available, otherwise fall back to the last known opening
+  const currentOpening = liveOpening ?? lastOpeningRef.current;
 
   return (
     <aside className="flex min-h-0 flex-col overflow-hidden rounded-md border border-white/10 bg-[#1d1d1c]">
@@ -113,9 +133,8 @@ export default function AnalysisSidePanel({
               <button
                 key={v}
                 onClick={() => onChangeVariant(v)}
-                className={`rounded-sm px-2 py-1 font-semibold uppercase leading-none tracking-wide lg:px-2.5 ${
-                  variant === v ? 'bg-[#7fa650] text-[#101010]' : 'bg-white/8 text-gray-300 hover:bg-white/14'
-                }`}
+                className={`rounded-sm px-2 py-1 font-semibold uppercase leading-none tracking-wide lg:px-2.5 ${variant === v ? 'bg-[#7fa650] text-[#101010]' : 'bg-white/8 text-gray-300 hover:bg-white/14'
+                  }`}
               >
                 {v}
               </button>
@@ -130,9 +149,8 @@ export default function AnalysisSidePanel({
 
             <button
               onClick={onToggleAuto}
-              className={`rounded-sm px-2 py-1 leading-none lg:px-2.5 ${
-                autoQuery ? 'bg-blue-600 text-white' : 'bg-white/8 text-gray-200 hover:bg-white/14'
-              }`}
+              className={`rounded-sm px-2 py-1 leading-none lg:px-2.5 ${autoQuery ? 'bg-blue-600 text-white' : 'bg-white/8 text-gray-200 hover:bg-white/14'
+                }`}
             >
               Auto {autoQuery ? 'On' : 'Off'}
             </button>
@@ -145,9 +163,8 @@ export default function AnalysisSidePanel({
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`py-3 uppercase tracking-wide ${
-              activeTab === tab ? 'bg-white/8 text-white' : 'text-gray-400 hover:text-gray-200'
-            }`}
+            className={`py-3 uppercase tracking-wide ${activeTab === tab ? 'bg-white/8 text-white' : 'text-gray-400 hover:text-gray-200'
+              }`}
           >
             {tab}
           </button>
@@ -220,17 +237,15 @@ export default function AnalysisSidePanel({
                       <div className="px-2 py-1.5 text-gray-500">{row.moveNumber}.</div>
                       <button
                         onClick={() => row.whiteIndex !== undefined && onNavigate(row.whiteIndex)}
-                        className={`px-2 py-1.5 text-left ${
-                          row.whiteIndex === historyIndex ? 'bg-white/12 text-white' : 'text-gray-300 hover:bg-white/7'
-                        }`}
+                        className={`px-2 py-1.5 text-left ${row.whiteIndex === historyIndex ? 'bg-white/12 text-white' : 'text-gray-300 hover:bg-white/7'
+                          }`}
                       >
                         {row.whiteMove?.san || '-'}
                       </button>
                       <button
                         onClick={() => row.blackIndex !== undefined && row.blackIndex < history.length && onNavigate(row.blackIndex)}
-                        className={`px-2 py-1.5 text-left ${
-                          row.blackIndex === historyIndex ? 'bg-white/12 text-white' : 'text-gray-300 hover:bg-white/7'
-                        }`}
+                        className={`px-2 py-1.5 text-left ${row.blackIndex === historyIndex ? 'bg-white/12 text-white' : 'text-gray-300 hover:bg-white/7'
+                          }`}
                       >
                         {row.blackMove?.san || '-'}
                       </button>

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { TablebaseResult } from '../types/tablebase';
@@ -32,6 +32,11 @@ export default function ChessBoardPanel({
     Array<{ startSquare: string; endSquare: string; color: string }>
   >([]);
   const [engineArrowHighlights, setEngineArrowHighlights] = useState<Record<string, true>>({});
+
+  // Clear per-position arrow highlights whenever the board position changes
+  useEffect(() => {
+    setEngineArrowHighlights({});
+  }, [fen]);
 
   const getGame = useCallback(() => {
     try {
