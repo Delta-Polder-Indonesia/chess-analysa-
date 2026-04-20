@@ -15,6 +15,7 @@ interface ChessBoardPanelProps {
   orientation: 'white' | 'black';
   boardResetKey?: number;
   lastMoveClassification?: MoveClassification | null;
+  lastMoveUci?: string | null;
 }
 
 export default function ChessBoardPanel({
@@ -28,6 +29,7 @@ export default function ChessBoardPanel({
   orientation,
   boardResetKey = 0,
   lastMoveClassification,
+  lastMoveUci,
 }: ChessBoardPanelProps) {
   const [moveFrom, setMoveFrom] = useState<string | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({});
@@ -338,9 +340,9 @@ export default function ChessBoardPanel({
           }
         }}
       />
-      {lastMove && lastMoveClassification && (
+      {lastMoveClassification && (lastMoveUci || lastMove) && (
         <EvaluationIcon
-          square={lastMove.to}
+          square={lastMoveUci ? lastMoveUci.slice(2, 4) : lastMove!.to}
           classification={lastMoveClassification}
           orientation={orientation}
         />
@@ -364,7 +366,7 @@ function EvaluationIcon({
   const file = square.charCodeAt(0) - 97; // a-h -> 0-7
   const rank = parseInt(square[1], 10) - 1; // 1-8 -> 0-7
 
-  // Calculate position percentage
+  // Calculate top-left of the square in %
   let left = (file / 8) * 100;
   let top = ((7 - rank) / 8) * 100;
 
@@ -377,14 +379,18 @@ function EvaluationIcon({
     <div
       className="absolute pointer-events-none z-10 animate-eval-icon"
       style={{
-        left: `calc(${left}% + 10.5%)`, // Offset to top-right of the square
-        top: `calc(${top}% - 1.5%)`,
-        width: '3.2%', // Relative to board size
-        height: '3.2%',
+        left: `${left + 11.2}%`, // Near right edge of square (12.5% is full square)
+        top: `${top - 1.2}%`,    // Near top edge of square
+        width: '4.2%', // Slightly larger for visibility
+        aspectRatio: '1',
         transform: 'translate(-50%, -50%)',
       }}
     >
-      <img src={iconUrl} alt={classification} className="w-full h-full object-contain drop-shadow-md" />
+      <img
+        src={iconUrl}
+        alt={classification}
+        className="w-full h-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+      />
     </div>
   );
 }

@@ -662,6 +662,7 @@ export default function App() {
             initialFen={NEW_GAME_FEN}
             boardResetKey={boardResetKey}
             lastMoveClassification={history[historyIndex]?.classification || null}
+            lastMoveUci={history[historyIndex]?.uci || null}
           />
 
           <AnalysisSidePanel
