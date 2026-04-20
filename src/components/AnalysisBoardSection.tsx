@@ -18,6 +18,7 @@ interface AnalysisBoardSectionProps {
   onReset: () => void;
   initialFen: string;
   boardResetKey: number;
+  lastMoveClassification?: string | null;
 }
 
 export default function AnalysisBoardSection({
@@ -34,6 +35,7 @@ export default function AnalysisBoardSection({
   onReset,
   initialFen,
   boardResetKey,
+  lastMoveClassification,
 }: AnalysisBoardSectionProps) {
   return (
     <section className="min-h-0 rounded-md border border-white/10 bg-[#2f2d2a] px-3 py-3 lg:px-4">
@@ -70,6 +72,7 @@ export default function AnalysisBoardSection({
                   maxSuggestionArrows={maxSuggestionArrows}
                   orientation={orientation}
                   boardResetKey={boardResetKey}
+                  lastMoveClassification={lastMoveClassification as any}
                 />
               </div>
             </motion.div>

@@ -5,12 +5,16 @@ import AnalysisSidePanel from './components/AnalysisSidePanel';
 import { EngineLine } from './components/EngineLinesPanel';
 import EngineSettingsModal, { EngineSettings } from './components/EngineSettingsModal';
 import { OPENING_BOOK, OpeningLine } from './data/openingBook';
+import { openings } from './data/openings';
 import { DEFAULT_ENGINE_SETTINGS, NEW_GAME_FEN, STARTING_FEN, TABLEBASE_LIMITS, VARIANTS } from './features/analysis/constants';
 import {
+  CLASSIFICATION_ICONS,
+  classifyMove,
   compareScoresForTurn,
   EngineArrowMove,
   EngineSuggestionMove,
   fetchStockfishOnline,
+  MoveClassification,
   normalizeContinuation,
   parsePvMovesFromUci,
   parseUciMove,
@@ -163,10 +167,13 @@ export default function App() {
           .sort((a, b) => b.priority - a.priority)
           .map(move => move.uci);
 
-        const firstMoveCandidates = [analysis.bestMoveUci, ...baseLineMoves, ...sortedLegalCandidates]
+        // IMPORTANT: Only use valid first moves for the current side.
+        // baseLineMoves is the continuation PV (bestMove, opponentReply, ...) — its entries
+        // after index 0 are opponent/later moves and will fail branchGame.move(). Exclude them.
+        const firstMoveCandidates = [analysis.bestMoveUci, ...sortedLegalCandidates]
           .filter((move): move is string => Boolean(move))
           .filter((move, index, arr) => arr.indexOf(move) === index)
-          .slice(0, Math.max(1, effectiveMultiPv));
+          .slice(0, effectiveMultiPv + 2); // extra buffer in case some fail validation
 
         const lines: StockfishAnalysis['lines'] = [];
 
@@ -225,6 +232,43 @@ export default function App() {
 
         engineCacheRef.current[cacheToken] = nextAnalysis;
         setEngineAnalysis(nextAnalysis);
+
+        // Classification Logic
+        // We classify the move that LED to targetFen by comparing the evaluation
+        // of targetFen with the evaluation of the position BEFORE targetFen.
+        if (targetIndex > 0) {
+          setHistory(prev => {
+            const cloned = [...prev];
+            const entry = cloned[targetIndex];
+            const prevEntry = cloned[targetIndex - 1];
+
+            if (entry && entry.fen === targetFen && !entry.classification) {
+              const prevAnalysis = entry.uci && prevEntry.fen ?
+                engineCacheRef.current[`${prevEntry.fen}::d${effectiveDepth}::mpv${effectiveMultiPv}`] : null;
+
+              if (prevAnalysis && entry.uci) {
+                const game = new Chess(prevEntry.fen);
+                const isOpening = openings.some(o => o.fen.split(' ')[0] === targetFen.split(' ')[0]);
+                const classification = classifyMove(
+                  entry.uci,
+                  prevAnalysis,
+                  nextAnalysis,
+                  isOpening,
+                  game.moves().length
+                );
+
+                if (classification) {
+                  cloned[targetIndex] = {
+                    ...entry,
+                    classification,
+                    moveEvaluation: { cp: nextAnalysis.evaluationCp, mate: nextAnalysis.mate }
+                  };
+                }
+              }
+            }
+            return cloned;
+          });
+        }
       } catch (e: any) {
         if (engineRequestIdRef.current !== currentRequestId) return;
         setEngineError(e?.message ?? 'Failed to fetch Stockfish analysis.');
@@ -617,6 +661,7 @@ export default function App() {
             onReset={handleReset}
             initialFen={NEW_GAME_FEN}
             boardResetKey={boardResetKey}
+            lastMoveClassification={history[historyIndex]?.classification || null}
           />
 
           <AnalysisSidePanel

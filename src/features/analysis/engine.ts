@@ -31,6 +31,31 @@ export type StockfishAnalysis = {
   lines: StockfishLine[];
 };
 
+export type MoveClassification =
+  | 'best'
+  | 'excellent'
+  | 'okay'
+  | 'inaccuracy'
+  | 'mistake'
+  | 'blunder'
+  | 'opening'
+  | 'forced'
+  | 'splendid'
+  | 'perfect';
+
+export const CLASSIFICATION_ICONS: Record<MoveClassification, string> = {
+  best: '/icons/best.png',
+  excellent: '/icons/excellent.png',
+  okay: '/icons/okay.png',
+  inaccuracy: '/icons/inaccuracy.png',
+  mistake: '/icons/mistake.png',
+  blunder: '/icons/blunder.png',
+  opening: '/icons/opening.png',
+  forced: '/icons/forced.png',
+  splendid: '/icons/splendid.png',
+  perfect: '/icons/perfect.png',
+};
+
 export type EngineSuggestionMove = {
   uci: string;
   san: string;
@@ -167,4 +192,37 @@ export function compareScoresForTurn(
   const aScore = scoreFromWhitePerspective(a.scoreCp, a.mate);
   const bScore = scoreFromWhitePerspective(b.scoreCp, b.mate);
   return turn === 'w' ? bScore - aScore : aScore - bScore;
+}
+
+export function classifyMove(
+  uci: string,
+  prevAnalysis: StockfishAnalysis | null,
+  currAnalysis: StockfishAnalysis | null,
+  isOpening: boolean,
+  legalMovesCount: number
+): MoveClassification | null {
+  if (isOpening) return 'opening';
+  if (legalMovesCount <= 1) return 'forced';
+  if (!prevAnalysis) return null;
+
+  const bestMove = prevAnalysis.bestMoveUci;
+  if (uci === bestMove) return 'best';
+
+  // Calculate centipawn loss
+  // Note: prevAnalysis is for the position BEFORE the move.
+  // It already contains the evaluation for the best move.
+  const bestEval = scoreFromWhitePerspective(prevAnalysis.evaluationCp, prevAnalysis.mate);
+  const currEval = scoreFromWhitePerspective(currAnalysis?.evaluationCp ?? null, currAnalysis?.mate ?? null);
+
+  // Loss is from the perspective of the player who just moved.
+  // If White just moved, loss = BestEval - CurrEval (if BestEval was +1 and CurrEval is +0.2, loss is 0.8)
+  // If Black just moved, loss = CurrEval - BestEval (if BestEval was -1 and CurrEval is -0.2, loss is 0.8)
+  // Wait, let's simplify: the side who moved is the opposite of the current side to move.
+  const loss = Math.abs(bestEval - currEval);
+
+  if (loss <= 20) return 'excellent';
+  if (loss <= 50) return 'okay';
+  if (loss <= 120) return 'inaccuracy';
+  if (loss <= 250) return 'mistake';
+  return 'blunder';
 }

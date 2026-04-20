@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { TablebaseResult } from '../types/tablebase';
+import { CLASSIFICATION_ICONS, MoveClassification } from '../features/analysis/engine';
 
 interface ChessBoardPanelProps {
   fen: string;
@@ -13,6 +14,7 @@ interface ChessBoardPanelProps {
   onMoveSelect?: (uci: string) => void;
   orientation: 'white' | 'black';
   boardResetKey?: number;
+  lastMoveClassification?: MoveClassification | null;
 }
 
 export default function ChessBoardPanel({
@@ -25,6 +27,7 @@ export default function ChessBoardPanel({
   onMoveSelect,
   orientation,
   boardResetKey = 0,
+  lastMoveClassification,
 }: ChessBoardPanelProps) {
   const [moveFrom, setMoveFrom] = useState<string | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({});
@@ -34,6 +37,7 @@ export default function ChessBoardPanel({
     Array<{ startSquare: string; endSquare: string; color: string }>
   >([]);
   const [engineArrowHighlights, setEngineArrowHighlights] = useState<Record<string, true>>({});
+  const boardRef = useRef<HTMLDivElement>(null);
 
   // Clear ALL arrow/mark state whenever the board position changes OR a reset is triggered.
   // boardResetKey increments on New Game even when FEN stays the same (starting position),
@@ -308,7 +312,7 @@ export default function ChessBoardPanel({
   );
 
   return (
-    <div className="relative chessboard-surface">
+    <div className="relative chessboard-surface" ref={boardRef}>
       <Chessboard
         options={{
           position: fen,
@@ -334,6 +338,54 @@ export default function ChessBoardPanel({
           }
         }}
       />
+      {lastMove && lastMoveClassification && (
+        <EvaluationIcon
+          square={lastMove.to}
+          classification={lastMoveClassification}
+          orientation={orientation}
+        />
+      )}
     </div>
   );
 }
+
+function EvaluationIcon({
+  square,
+  classification,
+  orientation
+}: {
+  square: string;
+  classification: MoveClassification;
+  orientation: 'white' | 'black'
+}) {
+  const iconUrl = CLASSIFICATION_ICONS[classification];
+  if (!iconUrl) return null;
+
+  const file = square.charCodeAt(0) - 97; // a-h -> 0-7
+  const rank = parseInt(square[1], 10) - 1; // 1-8 -> 0-7
+
+  // Calculate position percentage
+  let left = (file / 8) * 100;
+  let top = ((7 - rank) / 8) * 100;
+
+  if (orientation === 'black') {
+    left = ((7 - file) / 8) * 100;
+    top = (rank / 8) * 100;
+  }
+
+  return (
+    <div
+      className="absolute pointer-events-none z-10 animate-eval-icon"
+      style={{
+        left: `calc(${left}% + 10.5%)`, // Offset to top-right of the square
+        top: `calc(${top}% - 1.5%)`,
+        width: '3.2%', // Relative to board size
+        height: '3.2%',
+        transform: 'translate(-50%, -50%)',
+      }}
+    >
+      <img src={iconUrl} alt={classification} className="w-full h-full object-contain drop-shadow-md" />
+    </div>
+  );
+}
+

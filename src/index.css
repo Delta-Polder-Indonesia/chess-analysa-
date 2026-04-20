@@ -56,3 +56,18 @@ body {
     transform: translateY(0);
   }
 }
+
+.animate-eval-icon {
+  animation: evalIconPopup 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes evalIconPopup {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
