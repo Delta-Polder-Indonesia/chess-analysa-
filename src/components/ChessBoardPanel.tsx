@@ -33,9 +33,15 @@ export default function ChessBoardPanel({
   >([]);
   const [engineArrowHighlights, setEngineArrowHighlights] = useState<Record<string, true>>({});
 
-  // Clear per-position arrow highlights whenever the board position changes
+  // Clear ALL arrow/mark state whenever the board position changes.
+  // This prevents:
+  // 1. Stale engine arrow highlights (yellow) carrying over to the next position.
+  // 2. Drag-to-move events firing onArrowsChange with the move path, which overlaps
+  //    engine arrows and turns them yellow — those manual arrows must be purged on move.
   useEffect(() => {
     setEngineArrowHighlights({});
+    setManualArrows([]);
+    setMarkedSquares({});
   }, [fen]);
 
   const getGame = useCallback(() => {
