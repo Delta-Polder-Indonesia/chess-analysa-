@@ -43,6 +43,8 @@ npm run build
 ├─ package.json
 ├─ tsconfig.json
 ├─ vite.config.ts
+├─ publik
+│    └─ icons
 └─ src
    ├─ App.tsx
    ├─ main.tsx

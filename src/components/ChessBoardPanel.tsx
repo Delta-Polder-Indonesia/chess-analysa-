@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef, forwardRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { TablebaseResult } from '../types/tablebase';
@@ -313,6 +313,38 @@ export default function ChessBoardPanel({
     [customSquareStyles, markedSquares, optionSquares],
   );
 
+  const CustomSquareRenderer = useMemo(() => {
+    return forwardRef<HTMLDivElement, any>((props, ref) => {
+      const { children, square, style } = props;
+
+      const isTargetSquare = (lastMoveUci && lastMoveUci.slice(2, 4) === square) || (lastMove && lastMove.to === square);
+      const shouldShowIcon = isTargetSquare && lastMoveClassification;
+
+      return (
+        <div ref={ref} style={{ ...style, position: 'relative' }}>
+          {children}
+          {shouldShowIcon && (
+            <div
+              className="absolute pointer-events-none z-10 animate-eval-icon"
+              style={{
+                width: '38%',
+                height: '38%',
+                top: '-15%',
+                right: '-15%',
+              }}
+            >
+              <img
+                src={CLASSIFICATION_ICONS[lastMoveClassification]}
+                alt={lastMoveClassification}
+                className="w-full h-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+              />
+            </div>
+          )}
+        </div>
+      );
+    });
+  }, [lastMove, lastMoveUci, lastMoveClassification]);
+
   return (
     <div className="relative chessboard-surface" ref={boardRef}>
       <Chessboard
@@ -337,61 +369,11 @@ export default function ChessBoardPanel({
           snapToCursor: false,
           dropSquareStyle: {
             boxShadow: 'inset 0 0 1px 6px rgba(255, 255, 255, 0.75)'
-          }
+          },
+          customSquare: CustomSquareRenderer
         }}
-      />
-      {lastMoveClassification && (lastMoveUci || lastMove) && (
-        <EvaluationIcon
-          square={lastMoveUci ? lastMoveUci.slice(2, 4) : lastMove!.to}
-          classification={lastMoveClassification}
-          orientation={orientation}
-        />
-      )}
-    </div>
-  );
-}
-
-function EvaluationIcon({
-  square,
-  classification,
-  orientation
-}: {
-  square: string;
-  classification: MoveClassification;
-  orientation: 'white' | 'black'
-}) {
-  const iconUrl = CLASSIFICATION_ICONS[classification];
-  if (!iconUrl) return null;
-
-  const file = square.charCodeAt(0) - 97; // a-h -> 0-7
-  const rank = parseInt(square[1], 10) - 1; // 1-8 -> 0-7
-
-  // Calculate top-left of the square in %
-  let left = (file / 8) * 100;
-  let top = ((7 - rank) / 8) * 100;
-
-  if (orientation === 'black') {
-    left = ((7 - file) / 8) * 100;
-    top = (rank / 8) * 100;
-  }
-
-  return (
-    <div
-      className="absolute pointer-events-none z-10 animate-eval-icon"
-      style={{
-        left: `${left + 11.2}%`, // Near right edge of square (12.5% is full square)
-        top: `${top - 1.2}%`,    // Near top edge of square
-        width: '4.2%', // Slightly larger for visibility
-        aspectRatio: '1',
-        transform: 'translate(-50%, -50%)',
-      }}
-    >
-      <img
-        src={iconUrl}
-        alt={classification}
-        className="w-full h-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+        customSquare={CustomSquareRenderer}
       />
     </div>
   );
 }
-

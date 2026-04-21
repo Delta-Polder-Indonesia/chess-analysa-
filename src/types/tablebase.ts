@@ -63,4 +63,6 @@ export interface HistoryEntry {
   result?: TablebaseResult;
   moveEvaluation?: { cp: number | null; mate: number | null };
   classification?: MoveCategory | string; // Using string to allow engine classifications
+  accuracy?: number;
+  comment?: string;
 }
